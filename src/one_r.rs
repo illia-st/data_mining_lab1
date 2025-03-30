@@ -40,7 +40,6 @@ impl OneRClassifier {
                     .or_insert(0_usize);
                 *value_class_counts.get_mut(value).unwrap().get_mut(label).unwrap() += 1;
                 let count = value_class_counts.get(value).unwrap().get(label).unwrap();
-                println!("Index {index}: label: {label}, value: {value}, count {count}");
             }
 
             let mut rules: HashMap<String, String> = HashMap::new();
@@ -82,5 +81,9 @@ impl OneRClassifier {
             }
         }
         predictions
+    }
+
+    pub fn get_best_feature_index(&self) -> usize {
+        self.best_feature
     }
 }

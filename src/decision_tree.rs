@@ -8,6 +8,23 @@ pub enum Node {
     },
 }
 
+impl Node {
+    pub fn print_tree(&self, feature_names: &[&str], indent: &str) {
+        match self {
+            Node::Leaf(label) => {
+                println!("{}└── [Leaf] Class: {}", indent, label);
+            }
+            Node::Decision { feature_index, branches } => {
+                println!("{}└── [Decision] Feature: {}", indent, feature_names[*feature_index]);
+                for (value, subtree) in branches {
+                    println!("{}    ├── Value: {}", indent, value);
+                    subtree.print_tree(feature_names, &format!("{}    │   ", indent));
+                }
+            }
+        }
+    }
+}
+
 pub struct DecisionTreeClassifier {
     root: Node,
     default_class: String,  // глобальний клас за замовчуванням (наприклад, найбільш частий у навчанні)
@@ -38,13 +55,17 @@ impl DecisionTreeClassifier {
         self.root = self.build_tree(x, y, &all_indices, &feature_indices);
     }
 
-    pub fn build_tree(&self, x: &Vec<Vec<String>>, y: &Vec<String>, indices: &[usize], feature_indices: &[usize]) -> Node {
+    fn build_tree(&self, x: &Vec<Vec<String>>, y: &Vec<String>, indices: &[usize], feature_indices: &[usize]) -> Node {
         // 1. Якщо всі приклади одного класу - повертати Leaf
         let first_class = &y[indices[0]];
         let all_same_class = indices.iter().all(|&i| &y[i] == first_class);
         if all_same_class {
             return Node::Leaf(first_class.clone());
         }
+        /*
+            Якщо в поточній підмножині всі приклади мають один і той же клас — ми не можемо нічого кращого придумати,
+            створюємо листок з цим класом.
+        */
 
         // 2. Якщо не залишилось ознак - повернути Leaf з переважним класом цієї підмножини
         if feature_indices.is_empty() {
@@ -56,6 +77,10 @@ impl DecisionTreeClassifier {
             let majority_class = subset_class_count.into_iter().max_by_key(|entry| entry.1).unwrap().0;
             return Node::Leaf(majority_class);
         }
+        /*
+            Всі ознаки вже використані, а класи все ще змішані → нема сенсу далі розбивати,
+            обираємо найпоширеніший клас.
+        */
 
         // Функція для обчислення ентропії списку індексів
         let entropy = |idxs: &[usize]| {
@@ -74,26 +99,27 @@ impl DecisionTreeClassifier {
             ent
         };
 
-        let base_entropy = entropy(indices);
+        let base_entropy = entropy(indices); // рахуємо ентропію для усіх індексів
 
-        // 3. Знайти ознаку з максимальним інформаційним приростом
+        // 3. Знайти ознаку з максимальним інформаційним приростом (найкраща ознака для розбиття)
         let mut best_feature = None;
         let mut best_info_gain = 0.0;
         let mut best_splits: HashMap<String, Vec<usize>> = HashMap::new();
         for &feature in feature_indices {
-            // Розбити indices за значеннями ознаки feature
+            // Розбити indices за значеннями ознаки feature - тобто на групи за значенняи фічі
             let mut splits: HashMap<String, Vec<usize>> = HashMap::new();
-            for &i in indices {
-                let value = &x[i][feature];
+            for &i in indices { // i - індекс прикладу
+                let value = &x[i][feature]; // feature - індекс фічі
+                // value - значення певної ознаки
                 splits.entry(value.clone()).or_insert(Vec::new()).push(i);
             }
             // Обчислити ентропію після розбиття
             let mut new_entropy = 0.0;
             for subset_indices in splits.values() {
-                if subset_indices.is_empty() { 
+                if subset_indices.is_empty() { // індекси якогось одного конкретного value
                     continue; 
                 }
-                let subset_entropy = entropy(subset_indices);
+                let subset_entropy = entropy(subset_indices); // для них й рахуємо ентропію
                 new_entropy += (subset_indices.len() as f64 / indices.len() as f64) * subset_entropy;
             }
             let info_gain = base_entropy - new_entropy;
@@ -172,5 +198,9 @@ impl DecisionTreeClassifier {
             predictions.push(predicted_class);
         }
         predictions
+    }
+
+    pub fn print_tree(&self, feature_names: &[&str], indent: &str) {
+        self.root.print_tree(feature_names, indent);
     }
 }
