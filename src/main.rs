@@ -44,7 +44,7 @@ fn one_r_test_call() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn naive_bayes_test_call() -> Result<(), Box<dyn Error>> { // need to finish with naive bayes
+fn naive_bayes_test_call() -> Result<(), Box<dyn Error>> {
     // Зчитування даних із weather.csv
     let mut x: Vec<String> = Vec::new();
     let mut y: Vec<String> = Vec::new();
@@ -63,7 +63,6 @@ fn naive_bayes_test_call() -> Result<(), Box<dyn Error>> { // need to finish wit
         y.push(class_value);
     }
 
-    // // Створення і навчання моделі наївного Байєса
     let mut nb_model = naive_bayes::NaiveBayesClassifier::new(1.);
     nb_model.fit(&x, &y);
 
